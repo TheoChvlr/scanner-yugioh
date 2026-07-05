@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recherche de cartes Yu-Gi-Oh → Cardmarket</title>
+<style>
+  :root {
+    --bg: #0b0a14;
+    --panel: #14121f;
+    --panel-2: #1c1930;
+    --gold: #c8a24d;
+    --gold-bright: #e8c876;
+    --purple: #5b3a8e;
+    --text: #ece7f5;
+    --text-dim: #948da8;
+    --danger: #b5453f;
+    --ok: #4d8a6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Georgia', 'Iowan Old Style', serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  .eyebrow {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  h1 {
+    font-size: 26px;
+    text-align: center;
+    margin: 0 0 2px;
+    font-weight: normal;
+    letter-spacing: 0.5px;
+    background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .sub {
+    text-align: center;
+    color: var(--text-dim);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    margin-bottom: 22px;
+  }
+
+  .hieroglyph-rule {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 22px 0 16px;
+    color: var(--gold);
+    opacity: 0.6;
+    font-size: 12px;
+    justify-content: center;
+  }
+  .hieroglyph-rule::before, .hieroglyph-rule::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .search-box {
+    border: 1px solid #332b4d;
+    border-radius: 4px;
+    background: var(--panel);
+    padding: 18px;
+    position: relative;
+  }
+  .search-box label {
+    display: block;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  #search-input {
+    width: 100%;
+    background: #0e0c19;
+    border: 1px solid #3a3157;
+    color: var(--text);
+    padding: 11px 12px;
+    border-radius: 3px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 15px;
+  }
+  .suggestions {
+    position: relative;
+    margin-top: 4px;
+    border-radius: 3px;
+    overflow: hidden;
+    display: none;
+  }
+  .suggestions.open { display: block; }
+  .suggestion-item {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13.5px;
+    padding: 10px 12px;
+    background: #0e0c19;
+    border-bottom: 1px solid #241f38;
+    cursor: pointer;
+  }
+  .suggestion-item:hover, .suggestion-item.active { background: #241f38; color: var(--gold-bright); }
+  .suggestion-item:last-child { border-bottom: none; }
+
+  .status-line {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-top: 10px;
+    min-height: 16px;
+  }
+  .status-line.err { color: var(--danger); }
+  .status-line.ok { color: var(--ok); }
+
+  .result-card {
+    display: none;
+    margin-top: 16px;
+    background: var(--panel-2);
+    border: 1px solid #3a3157;
+    border-radius: 4px;
+    padding: 16px;
+  }
+
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 5px;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: #0e0c19;
+    border: 1px solid #3a3157;
+    color: var(--text);
+    padding: 9px 10px;
+    border-radius: 3px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+  }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+
+  .add-btn {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    width: 100%;
+    background: var(--purple);
+    color: #fff;
+    border: none;
+    padding: 11px;
+    border-radius: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .add-btn:active { transform: translateY(1px); }
+
+  .binder-title {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .binder-title .count { color: var(--gold); font-weight: 700; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid #2a2440;
+    border-radius: 3px;
+    padding: 9px 10px;
+    margin-bottom: 6px;
+  }
+  .row .idx {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10px;
+    color: var(--gold);
+    width: 18px;
+    flex-shrink: 0;
+  }
+  .row .info { flex: 1; min-width: 0; }
+  .row .name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .meta {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px;
+    color: var(--text-dim);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .row .price {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    color: var(--gold-bright);
+    flex-shrink: 0;
+  }
+  .row .del {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+    padding: 2px 4px;
+  }
+  .row .del:hover { color: var(--danger); }
+
+  .empty-note {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 24px 10px;
+    border: 1px dashed #332b4d;
+    border-radius: 4px;
+  }
+
+  .export-bar {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .export-btn {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold-bright);
+    padding: 11px;
+    border-radius: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .export-btn:active { background: rgba(200,162,77,0.1); }
+  .export-btn:disabled { opacity: 0.4; cursor: default; }
+
+  .price-note {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin: -6px 0 12px;
+    min-height: 14px;
+  }
+  .price-note.found { color: var(--ok); }
+
+  .help {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    background: var(--panel);
+    border-left: 2px solid var(--gold);
+    padding: 12px 14px;
+    border-radius: 0 4px 4px 0;
+    margin-top: 22px;
+  }
+  .help b { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Duel Disk · Import</div>
+  <h1>Recherche de cartes</h1>
+  <div class="sub">Photo ou texte, l'IA identifie, tu exportes vers Cardmarket — 100% gratuit</div>
+
+  <div class="search-box" style="margin-bottom:16px;">
+    <label>Clé API Gemini (gratuite, stockée uniquement dans ce navigateur)</label>
+    <input id="gemini-key" type="password" placeholder="AIza...">
+    <div id="gemini-key-note" class="price-note" style="margin-top:8px;"></div>
+  </div>
+
+  <div class="search-box" style="text-align:center;">
+    <input id="file-input" type="file" accept="image/*" capture="environment" style="display:none;">
+    <img id="thumb" alt="carte scannée" style="width:70px;height:98px;object-fit:cover;border-radius:3px;border:1px solid var(--gold);margin:0 auto 12px;display:none;">
+    <button id="capture-btn" style="font-family:'Helvetica Neue',Arial,sans-serif;display:inline-flex;align-items:center;gap:10px;background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#221a0e;border:none;padding:13px 26px;border-radius:3px;font-size:14px;font-weight:700;letter-spacing:0.5px;cursor:pointer;width:100%;justify-content:center;">📷 Scanner une carte</button>
+    <div id="photo-status" class="status-line"></div>
+  </div>
+
+  <div class="hieroglyph-rule">ou</div>
+
+  <div class="search-box">
+    <label>Nom de la carte</label>
+    <input id="search-input" placeholder="ex. Dark Magician, Super Cuirassé..." autocomplete="off">
+    <div id="suggestions" class="suggestions"></div>
+    <div id="status" class="status-line"></div>
+  </div>
+
+  <div id="result-card" class="result-card">
+    <div class="field">
+      <label>Nom de la carte</label>
+      <input id="f-name">
+    </div>
+    <div class="field">
+      <label>Édition / rareté</label>
+      <select id="f-print"></select>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Code édition</label>
+        <input id="f-set" placeholder="ex. LOB-001">
+      </div>
+      <div class="field">
+        <label>Rareté</label>
+        <input id="f-rarity" placeholder="ex. Ultra Rare">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Langue</label>
+        <select id="f-lang">
+          <option>Anglais</option>
+          <option>Français</option>
+          <option>Allemand</option>
+          <option>Espagnol</option>
+          <option>Italien</option>
+          <option>Japonais</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>État</label>
+        <select id="f-cond">
+          <option>NM</option>
+          <option>EX</option>
+          <option>GD</option>
+          <option>LP</option>
+          <option>PL</option>
+          <option>PO</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Quantité</label>
+        <input id="f-qty" type="number" min="1" value="1">
+      </div>
+      <div class="field">
+        <label>Prix (€)</label>
+        <input id="f-price" type="number" step="0.01" min="0" placeholder="0.00">
+      </div>
+    </div>
+    <div id="price-note" class="price-note"></div>
+    <button id="add-btn" class="add-btn">Ajouter à la liste de vente</button>
+  </div>
+
+  <div class="hieroglyph-rule">⟡</div>
+
+  <div class="binder-title">
+    <span>Liste prête à exporter</span>
+    <span class="count"><span id="count">0</span> carte(s)</span>
+  </div>
+
+  <div id="list"></div>
+
+  <div class="export-bar">
+    <button id="dl-btn" class="export-btn" disabled>⬇ Télécharger le CSV</button>
+    <button id="copy-btn" class="export-btn" disabled>⧉ Copier</button>
+  </div>
+
+  <div class="help">
+    <b>Sur les prix :</b> ils viennent de la base gratuite YGOPRODeck (prix Cardmarket republiés, mise à jour périodique, pas en temps réel). Bon point de départ, pas forcément le prix le plus bas du jour — vérifie toujours la fiche Cardmarket de ta carte avant de valider.<br><br>
+    <b>Comment finaliser la mise en vente :</b><br>
+    Cardmarket n'autorise plus l'accès API à de nouveaux vendeurs — c'est une limite de Cardmarket lui-même, impossible à contourner depuis cette page. La solution la plus rapide reste : sur un <b>ordinateur</b>, installe l'extension gratuite <b>« cardmarket-bulk-import »</b> (Chrome/Firefox — pas dispo sur navigateur mobile), ouvre la page Cardmarket « Mise en vente en masse », et importe ce CSV — elle remplit le formulaire pour toi (par lots de 100 cartes). Pour transférer le CSV du téléphone au PC : mail, Drive, ou AirDrop. Vérifie toujours les prix et raretés avant de valider.
+  </div>
+</div>
+
+<script>
+  const searchInput = document.getElementById('search-input');
+  const suggestionsEl = document.getElementById('suggestions');
+  const statusEl = document.getElementById('status');
+  const resultCard = document.getElementById('result-card');
+  const addBtn = document.getElementById('add-btn');
+  const listEl = document.getElementById('list');
+  const countEl = document.getElementById('count');
+  const dlBtn = document.getElementById('dl-btn');
+  const copyBtn = document.getElementById('copy-btn');
+
+  const geminiKeyInput = document.getElementById('gemini-key');
+  const geminiKeyNote = document.getElementById('gemini-key-note');
+  const fileInput = document.getElementById('file-input');
+  const thumb = document.getElementById('thumb');
+  const captureBtn = document.getElementById('capture-btn');
+  const photoStatus = document.getElementById('photo-status');
+
+  const fName = document.getElementById('f-name');
+  const fPrint = document.getElementById('f-print');
+  const fSet = document.getElementById('f-set');
+  const fRarity = document.getElementById('f-rarity');
+  const fLang = document.getElementById('f-lang');
+  const fCond = document.getElementById('f-cond');
+  const fQty = document.getElementById('f-qty');
+  const fPrice = document.getElementById('f-price');
+  const priceNote = document.getElementById('price-note');
+
+  let cards = [];
+  let currentCard = null;
+  let debounceTimer = null;
+  let activeSuggestionIndex = -1;
+  let suggestionsFromPhoto = false;
+
+  function setStatus(text, type) {
+    statusEl.textContent = text;
+    statusEl.className = 'status-line' + (type ? ' ' + type : '');
+  }
+
+  async function ygoSearch(fname) {
+    const urlEn = 'https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=' + encodeURIComponent(fname) + '&num=8&offset=0';
+    const urlFr = 'https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=' + encodeURIComponent(fname) + '&language=fr&num=8&offset=0';
+
+    const [enResults, frResults] = await Promise.all([
+      fetch(urlEn).then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
+      fetch(urlFr).then(r => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] }))
+    ]);
+
+    const combined = [...(frResults.data || []), ...(enResults.data || [])];
+    // Déduplique par id de carte (garde la version française en priorité si trouvée dans les deux)
+    const seen = new Set();
+    const deduped = [];
+    for (const card of combined) {
+      if (!seen.has(card.id)) {
+        seen.add(card.id);
+        deduped.push(card);
+      }
+    }
+    return deduped.slice(0, 8);
+  }
+
+  // Recherche exacte via le code d'édition imprimé sur la carte (ex. RA02-FR035).
+  // Un seul lookup ciblé, beaucoup plus fiable qu'une recherche par nom.
+  async function cardLookupBySetCode(code) {
+    try {
+      const infoUrl = 'https://db.ygoprodeck.com/api/v7/cardsetsinfo.php?setcode=' + encodeURIComponent(code);
+      const infoRes = await fetch(infoUrl);
+      if (!infoRes.ok) return null;
+      const info = await infoRes.json();
+      if (!info || !info.id) return null;
+
+      const cardUrl = 'https://db.ygoprodeck.com/api/v7/cardinfo.php?id=' + encodeURIComponent(info.id);
+      const cardRes = await fetch(cardUrl);
+      if (!cardRes.ok) return null;
+      const cardData = await cardRes.json();
+      const card = cardData && cardData.data && cardData.data[0];
+      if (!card) return null;
+
+      return { card, matchedSetCode: info.set_code || code };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Devine la langue d'impression à partir du suffixe du set code (ex. -FR035, -EN001)
+  function langFromSetCode(code) {
+    const m = /-([A-Z]{2})\d/i.exec(code || '');
+    const lang = m ? m[1].toUpperCase() : '';
+    const map = { FR: 'Français', EN: 'Anglais', DE: 'Allemand', IT: 'Italien', SP: 'Espagnol', ES: 'Espagnol', JP: 'Japonais' };
+    return map[lang] || 'Français';
+  }
+
+  function renderSuggestions(list) {
+    activeSuggestionIndex = -1;
+    if (!list.length) {
+      suggestionsEl.classList.remove('open');
+      suggestionsEl.innerHTML = '';
+      return;
+    }
+    suggestionsEl.innerHTML = list.map((c, i) =>
+      `<div class="suggestion-item" data-idx="${i}">${escapeHtml(c.name)}</div>`
+    ).join('');
+    suggestionsEl.classList.add('open');
+    suggestionsEl.querySelectorAll('.suggestion-item').forEach(el => {
+      el.addEventListener('click', () => selectCard(list[parseInt(el.dataset.idx, 10)]));
+    });
+  }
+
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim();
+    clearTimeout(debounceTimer);
+    if (q.length < 3) {
+      suggestionsEl.classList.remove('open');
+      return;
+    }
+    setStatus('Recherche…', '');
+    debounceTimer = setTimeout(async () => {
+      try {
+        const results = await ygoSearch(q);
+        suggestionsFromPhoto = false;
+        renderSuggestions(results);
+        setStatus(results.length ? '' : 'Aucune carte trouvée.', results.length ? '' : 'err');
+        window.__lastResults = results;
+      } catch (e) {
+        setStatus('Recherche indisponible pour le moment.', 'err');
+        console.error(e);
+      }
+    }, 350);
+  });
+
+  searchInput.addEventListener('keydown', (e) => {
+    const items = suggestionsEl.querySelectorAll('.suggestion-item');
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeSuggestionIndex = Math.min(activeSuggestionIndex + 1, items.length - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeSuggestionIndex = Math.max(activeSuggestionIndex - 1, 0);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeSuggestionIndex >= 0 && window.__lastResults) {
+        selectCard(window.__lastResults[activeSuggestionIndex]);
+      }
+      return;
+    } else {
+      return;
+    }
+    items.forEach((el, i) => el.classList.toggle('active', i === activeSuggestionIndex));
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-box')) {
+      suggestionsEl.classList.remove('open');
+    }
+  });
+
+  // --- Clé API Gemini : stockage local navigateur uniquement ---
+  const GEMINI_KEY_STORAGE = 'ygoh_scanner_gemini_key';
+
+  function setGeminiNote(text, ok) {
+    geminiKeyNote.textContent = text;
+    geminiKeyNote.className = 'price-note' + (ok ? ' found' : '');
+  }
+
+  (function initGeminiKey() {
+    const saved = localStorage.getItem(GEMINI_KEY_STORAGE);
+    if (saved) {
+      geminiKeyInput.value = saved;
+      setGeminiNote('Clé chargée depuis ce navigateur.', true);
+    } else {
+      setGeminiNote('Nécessaire pour le scan photo. Obtiens une clé gratuite sur aistudio.google.com/apikey.', false);
+    }
+  })();
+
+  geminiKeyInput.addEventListener('input', () => {
+    const val = geminiKeyInput.value.trim();
+    if (val) {
+      localStorage.setItem(GEMINI_KEY_STORAGE, val);
+      setGeminiNote('Clé enregistrée dans ce navigateur.', true);
+    } else {
+      localStorage.removeItem(GEMINI_KEY_STORAGE);
+      setGeminiNote('Nécessaire pour le scan photo. Obtiens une clé gratuite sur aistudio.google.com/apikey.', false);
+    }
+  });
+
+  function setPhotoStatus(text, type) {
+    photoStatus.textContent = text;
+    photoStatus.className = 'status-line' + (type ? ' ' + type : '');
+  }
+
+  captureBtn.addEventListener('click', () => {
+    const key = geminiKeyInput.value.trim();
+    if (!key) {
+      setPhotoStatus('Renseigne d\'abord ta clé API Gemini ci-dessus.', 'err');
+      geminiKeyInput.focus();
+      return;
+    }
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+
+    const key = geminiKeyInput.value.trim();
+    if (!key) {
+      setPhotoStatus('Renseigne d\'abord ta clé API Gemini ci-dessus.', 'err');
+      return;
+    }
+
+    const localUrl = URL.createObjectURL(file);
+    thumb.src = localUrl;
+    thumb.style.display = 'block';
+
+    captureBtn.disabled = true;
+    captureBtn.textContent = '⏳ Analyse en cours…';
+    setPhotoStatus('Lecture de l\'image…', '');
+
+    try {
+      const base64 = await fileToBase64(file);
+      setPhotoStatus('Identification de la carte par l\'IA…', '');
+
+      const { setCode, candidates } = await identifyCardFromImage(base64, file.type, key);
+
+      // 1) Priorité absolue : le code d'édition (ex. RA02-FR035) est un identifiant
+      //    unique, bien plus fiable qu'un nom deviné. On tente d'abord un lookup exact.
+      if (setCode) {
+        setPhotoStatus('Code d\'édition détecté (' + setCode + ') — recherche exacte…', '');
+        const exact = await cardLookupBySetCode(setCode);
+        if (exact) {
+          suggestionsFromPhoto = true;
+          selectCard(exact.card);
+          fLang.value = langFromSetCode(exact.matchedSetCode);
+
+          const prints = JSON.parse(fPrint.dataset.printsJson || '[]');
+          const idx = prints.findIndex(p => (p.set_code || '').toUpperCase() === exact.matchedSetCode.toUpperCase());
+          if (idx >= 0) {
+            fPrint.value = idx;
+            applyPrint(idx);
+          }
+          setPhotoStatus('Carte identifiée avec précision via son code d\'édition (' + exact.matchedSetCode + ') — vérifie les détails.', 'ok');
+          return;
+        }
+        setPhotoStatus('Code "' + setCode + '" illisible par la base, recherche par nom…', '');
+      }
+
+      // 2) Repli : recherche par noms candidats devinés par l'IA.
+      if (!candidates.length) {
+        setPhotoStatus('Impossible d\'identifier la carte sur cette photo. Réessaie avec une photo plus nette (bien cadrée, sans reflet, code d\'édition visible en bas), ou utilise la recherche par nom.', 'err');
+        return;
+      }
+
+      setPhotoStatus('Recherche des cartes possibles…', '');
+
+      const resultsPerCandidate = await Promise.all(candidates.map(name => ygoSearch(name).catch(() => [])));
+      const seen = new Set();
+      const combined = [];
+      for (const list of resultsPerCandidate) {
+        for (const c of list) {
+          if (!seen.has(c.id)) {
+            seen.add(c.id);
+            combined.push(c);
+          }
+        }
+      }
+
+      if (!combined.length) {
+        setPhotoStatus('L\'IA a proposé "' + candidates[0] + '" mais aucune carte correspondante n\'a été trouvée dans la base. Essaie la recherche manuelle.', 'err');
+        searchInput.value = candidates[0];
+        return;
+      }
+
+      window.__lastResults = combined;
+      suggestionsFromPhoto = true;
+      renderSuggestions(combined);
+      searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      searchInput.focus();
+
+      if (combined.length === 1) {
+        setPhotoStatus('Une carte trouvée — vérifie et clique dessus pour la remplir.', 'ok');
+      } else {
+        setPhotoStatus(candidates.length > 1
+          ? 'Plusieurs cartes possibles — choisis la bonne dans la liste ci-dessous.'
+          : combined.length + ' résultats pour "' + candidates[0] + '" — choisis la bonne dans la liste ci-dessous.', 'ok');
+      }
+    } catch (e) {
+      console.error(e);
+      const msg = (e && e.message) ? e.message : 'Erreur inconnue.';
+      setPhotoStatus('Échec du scan : ' + msg, 'err');
+    } finally {
+      captureBtn.disabled = false;
+      captureBtn.textContent = '📷 Scanner une carte';
+      fileInput.value = '';
+    }
+  });
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Un seul appel Gemini (peu de tokens) qui renvoie à la fois le code d'édition
+  // lu sur la carte et, en secours, jusqu'à 3 noms anglais candidats.
+  async function identifyCardFromImage(base64Data, mimeType, apiKey) {
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(apiKey);
+    const prompt = 'Tu regardes la photo d\'une carte Yu-Gi-Oh. Réponds UNIQUEMENT par un objet JSON strict, sans texte autour, sans balises markdown, exactement dans ce format : {"set_code":"...","candidates":["...","..."]}. ' +
+      'set_code : le petit code imprimé en bas à gauche de la carte (ex. "RA02-FR035", "LOB-EN001", "SDY-046"), recopié EXACTEMENT ; mets "" si tu ne le vois pas clairement. ' +
+      'candidates : le nom de la carte tel qu\'il est ÉCRIT LITTÉRALEMENT, en GROS, TOUT EN HAUT de la carte (juste au-dessus de l\'illustration, à l\'intérieur du bandeau titre) — recopie-le EXACTEMENT caractère pour caractère, DANS LA LANGUE IMPRIMÉE SUR LA CARTE, sans traduire, sans corriger l\'orthographe, sans deviner un autre mot. Ne confonds pas ce titre avec le nom d\'un monstre mentionné dans le texte d\'effet en bas de la carte. Donne 1 seule lecture si tu es sûr de ta lecture du titre, jusqu\'à 3 variantes orthographiques si le texte est flou ou partiellement caché. ' +
+      'Si tu ne vois aucune carte Yu-Gi-Oh sur l\'image, réponds : {"set_code":"","candidates":[]}.';
+
+    const body = {
+      contents: [{
+        parts: [
+          { text: prompt },
+          { inline_data: { mime_type: mimeType || 'image/jpeg', data: base64Data } }
+        ]
+      }],
+      generationConfig: { temperature: 0, maxOutputTokens: 150 }
+    };
+
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+    } catch (e) {
+      throw new Error('Connexion à Gemini impossible (réseau).');
+    }
+
+    if (!response.ok) {
+      if (response.status === 400 || response.status === 403) {
+        throw new Error('Clé API Gemini invalide ou refusée.');
+      }
+      if (response.status === 429) {
+        throw new Error('Quota Gemini atteint, réessaie dans un instant.');
+      }
+      throw new Error('Erreur Gemini (HTTP ' + response.status + ').');
+    }
+
+    const data = await response.json();
+    const text = data && data.candidates && data.candidates[0] &&
+      data.candidates[0].content && data.candidates[0].content.parts &&
+      data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+
+    if (!text) return { setCode: '', candidates: [] };
+
+    const clean = text.trim().replace(/^```json\s*|^```\s*|```$/g, '').trim();
+
+    try {
+      const parsed = JSON.parse(clean);
+      const setCode = typeof parsed.set_code === 'string' ? parsed.set_code.trim().toUpperCase() : '';
+      const candidates = Array.isArray(parsed.candidates)
+        ? parsed.candidates.map(c => String(c).trim()).filter(Boolean).slice(0, 3)
+        : [];
+      return { setCode: /^[A-Z0-9]{2,6}-[A-Z0-9]{2,6}$/.test(setCode) ? setCode : '', candidates };
+    } catch (e) {
+      // Réponse non-JSON malgré la consigne : on retombe sur un parsing ligne par ligne.
+      const lines = clean.split('\n')
+        .map(l => l.trim().replace(/^[-*\d.)\s]+/, '').replace(/^["'“”]+|["'“”]+$/g, ''))
+        .filter(Boolean)
+        .filter(l => !/^INCONNU\.?$/i.test(l));
+      return { setCode: '', candidates: lines.slice(0, 3) };
+    }
+  }
+
+  function selectCard(card) {
+    if (!card) return;
+    currentCard = card;
+    suggestionsEl.classList.remove('open');
+    searchInput.value = card.name;
+    setStatus('Carte trouvée — choisis l\'édition et vérifie le prix.', 'ok');
+
+    fName.value = card.name;
+
+    const prints = (card.card_sets && card.card_sets.length) ? card.card_sets : [{ set_code: '', set_rarity: '', set_price: '' }];
+    fPrint.innerHTML = prints.map((p, i) =>
+      `<option value="${i}">${escapeHtml(p.set_code || '—')} · ${escapeHtml(p.set_rarity || '?')}</option>`
+    ).join('');
+    fPrint.dataset.printsJson = JSON.stringify(prints);
+    applyPrint(0);
+
+    fLang.value = suggestionsFromPhoto ? 'Français' : 'Anglais';
+    fCond.value = 'NM';
+    fQty.value = 1;
+
+    const cardmarket = card.card_prices && card.card_prices[0] ? parseFloat(card.card_prices[0].cardmarket_price) : NaN;
+    if (cardmarket && cardmarket > 0) {
+      fPrice.value = cardmarket.toFixed(2);
+      priceNote.textContent = 'Prix suggéré (moyenne Cardmarket, YGOPRODeck) — vérifie avant de valider.';
+      priceNote.className = 'price-note found';
+    } else {
+      fPrice.value = '';
+      priceNote.textContent = 'Aucun prix trouvé, saisis-le manuellement.';
+      priceNote.className = 'price-note';
+    }
+
+    resultCard.style.display = 'block';
+  }
+
+  function applyPrint(idx) {
+    const prints = JSON.parse(fPrint.dataset.printsJson || '[]');
+    const p = prints[idx] || {};
+    fSet.value = p.set_code || '';
+    fRarity.value = p.set_rarity || '';
+  }
+
+  fPrint.addEventListener('change', () => applyPrint(parseInt(fPrint.value, 10)));
+
+  addBtn.addEventListener('click', () => {
+    if (!fName.value.trim()) {
+      setStatus('Le nom de la carte est vide.', 'err');
+      return;
+    }
+    cards.push({
+      name: fName.value.trim(),
+      set_code: fSet.value.trim(),
+      rarity: fRarity.value.trim(),
+      language: fLang.value,
+      condition: fCond.value,
+      quantity: fQty.value || 1,
+      price: fPrice.value || ''
+    });
+    renderList();
+    resultCard.style.display = 'none';
+    searchInput.value = '';
+    setStatus('Ajoutée à la liste.', 'ok');
+  });
+
+  function renderList() {
+    countEl.textContent = cards.length;
+    dlBtn.disabled = cards.length === 0;
+    copyBtn.disabled = cards.length === 0;
+
+    if (cards.length === 0) {
+      listEl.innerHTML = '<div class="empty-note">Aucune carte pour l\'instant. Recherche ta première carte ci-dessus.</div>';
+      return;
+    }
+
+    listEl.innerHTML = cards.map((c, i) => `
+      <div class="row">
+        <span class="idx">${i + 1}</span>
+        <div class="info">
+          <div class="name">${escapeHtml(c.name)}</div>
+          <div class="meta">${[c.set_code, c.rarity, c.language, c.condition, 'x' + c.quantity].filter(Boolean).map(escapeHtml).join(' · ')}</div>
+        </div>
+        <span class="price">${c.price ? escapeHtml(String(c.price)) + '€' : ''}</span>
+        <button class="del" data-idx="${i}">×</button>
+      </div>
+    `).join('');
+
+    listEl.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        cards.splice(parseInt(btn.dataset.idx, 10), 1);
+        renderList();
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function toCSV() {
+    const headers = ['Name', 'Number', 'Rarity', 'Language', 'Condition', 'Quantity', 'Price'];
+    const lines = [headers.join(';')];
+    cards.forEach(c => {
+      lines.push([c.name, c.set_code, c.rarity, c.language, c.condition, c.quantity, c.price]
+        .map(v => String(v ?? '').replace(/;/g, ',')).join(';'));
+    });
+    return lines.join('\n');
+  }
+
+  dlBtn.addEventListener('click', () => {
+    const blob = new Blob([toCSV()], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cardmarket_import_yugioh.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(toCSV());
+      setStatus('CSV copié dans le presse-papiers.', 'ok');
+    } catch {
+      setStatus('Copie impossible ici, utilise le téléchargement.', 'err');
+    }
+  });
+
+  renderList();
+</script>
+</body>
+</html>
